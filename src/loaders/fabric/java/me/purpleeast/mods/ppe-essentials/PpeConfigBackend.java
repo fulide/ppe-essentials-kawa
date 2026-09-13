@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Provides Fabric's lightweight TOML persistence and live-reload support.
+ */
 final class PpeConfigBackend {
     private static final long RELOAD_CHECK_INTERVAL_NANOS = 1_000_000_000L;
     private static final Map<String, PpeConfig.ValueDefinition> DEFINITIONS = PpeConfig.values().stream()
@@ -93,6 +96,7 @@ final class PpeConfigBackend {
 
     private static void reloadIfChanged() {
         long currentNanos = System.nanoTime();
+        // Avoid a filesystem timestamp lookup for every command-side configuration read.
         if (lastReloadCheckNanos != Long.MIN_VALUE
                 && currentNanos - lastReloadCheckNanos < RELOAD_CHECK_INTERVAL_NANOS) {
             return;

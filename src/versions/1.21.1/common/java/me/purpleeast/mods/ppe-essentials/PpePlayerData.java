@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Adapts the shared data store to Minecraft 1.21.1 SavedData serialization.
+ */
 public class PpePlayerData extends PpePlayerDataStore {
     private static final String NAME = PpeEssentials.MODID + "_player_data";
 

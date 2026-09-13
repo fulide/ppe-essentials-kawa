@@ -13,6 +13,9 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+/**
+ * Connects NeoForge events to shared behavior and loader-specific protections.
+ */
 public final class PpeEvents {
     private PpeEvents() {
     }

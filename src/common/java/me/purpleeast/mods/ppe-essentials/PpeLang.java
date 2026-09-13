@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Resolves player-facing messages using the client's language with a configured fallback.
+ */
 public final class PpeLang {
     public static final Component PREFIX = Component.literal("")
             .append(coloredLiteral("[", 0xAAAAAA))

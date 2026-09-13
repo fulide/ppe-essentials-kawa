@@ -11,6 +11,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Implements lifecycle and player event behavior shared by Fabric and NeoForge.
+ */
 public final class PpeRuntimeEvents {
     private static final Map<UUID, Integer> BACK_NOTICE_TICKS = new HashMap<>();
     private static final Map<UUID, Integer> FIRST_JOIN_NOTICE_TICKS = new HashMap<>();
@@ -29,6 +32,7 @@ public final class PpeRuntimeEvents {
     public static void onPlayerRespawn(ServerPlayer player) {
         PpeCommands.restoreFly(player);
         if (PpePlayerData.get(PpeCompat.server(player)).markBackNoticeShown(player.getUUID())) {
+            // Delay the message until the respawned player is ready to receive UI updates.
             BACK_NOTICE_TICKS.put(player.getUUID(), PpeCompat.server(player).getTickCount() + 10);
         }
     }
@@ -37,6 +41,7 @@ public final class PpeRuntimeEvents {
         MinecraftServer server = PpeCompat.server(player);
         PpeCommands.restoreFly(player);
         if (PpeConfig.firstJoinNotice() && !PpePlayerData.get(server).hasFirstJoinNoticeShown(player.getUUID())) {
+            // A short delay keeps the notice from competing with initial join packets.
             FIRST_JOIN_NOTICE_TICKS.put(player.getUUID(), server.getTickCount() + 40);
         }
     }

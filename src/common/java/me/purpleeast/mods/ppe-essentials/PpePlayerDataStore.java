@@ -9,6 +9,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Holds persistent player and server state independently of version-specific NBT APIs.
+ */
 public abstract class PpePlayerDataStore extends SavedData {
     protected final Map<UUID, PpeLocation> homes = new HashMap<>();
     protected final Map<UUID, PpeLocation> deathBacks = new HashMap<>();
@@ -138,6 +141,7 @@ public abstract class PpePlayerDataStore extends SavedData {
     }
 
     private boolean toggleUuidSet(Set<UUID> target, UUID uuid) {
+        // Every state transition marks the SavedData instance for persistence.
         boolean enabled;
         if (target.contains(uuid)) {
             target.remove(uuid);

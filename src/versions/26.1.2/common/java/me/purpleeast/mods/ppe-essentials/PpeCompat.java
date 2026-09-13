@@ -22,6 +22,9 @@ import net.minecraft.world.item.component.ResolvableProfile;
 
 import java.util.Set;
 
+/**
+ * Isolates Minecraft 26.1.2 API calls from the shared command and event code.
+ */
 public final class PpeCompat {
     private PpeCompat() {
     }

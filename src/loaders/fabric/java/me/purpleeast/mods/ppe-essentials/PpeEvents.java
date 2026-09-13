@@ -7,6 +7,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
 
+/**
+ * Connects Fabric lifecycle hooks to the shared runtime event handlers.
+ */
 public final class PpeEvents {
     private PpeEvents() {
     }

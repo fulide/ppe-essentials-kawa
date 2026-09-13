@@ -14,6 +14,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ResolvableProfile;
 
+/**
+ * Isolates Minecraft 1.21.1 API calls from the shared command and event code.
+ */
 public final class PpeCompat {
     private PpeCompat() {
     }

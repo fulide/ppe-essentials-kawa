@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Adapts the shared data store to Minecraft 26.1.2 SavedData serialization.
+ */
 public class PpePlayerData extends PpePlayerDataStore {
     private static final String NAME = "player_data";
     private static final Codec<PpePlayerData> CODEC = CompoundTag.CODEC.xmap(PpePlayerData::load, PpePlayerData::saveTag);

@@ -11,6 +11,9 @@ import net.minecraft.world.level.Level;
 
 import java.util.Optional;
 
+/**
+ * Serializable teleport destination containing a dimension, position, and orientation.
+ */
 public record PpeLocation(ResourceKey<Level> level, double x, double y, double z, float yRot, float xRot) {
     public static PpeLocation of(ServerPlayer player) {
         return new PpeLocation(PpeCompat.level(player).dimension(), player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());

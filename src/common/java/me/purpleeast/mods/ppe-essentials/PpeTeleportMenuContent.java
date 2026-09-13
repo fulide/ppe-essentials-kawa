@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Builds and updates the shared inventory contents for paginated teleport menus.
+ */
 final class PpeTeleportMenuContent {
     static final int MENU_SIZE = 54;
     static final int PLAYERS_PER_PAGE = 36;

@@ -39,6 +39,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Registers PPE commands and owns their loader-independent runtime behavior.
+ */
 public final class PpeCommands {
     private static final int INTERNAL_COMMAND_PERMISSION_LEVEL = 4;
     private static final int TELEPORT_SOUND_DELAY_TICKS = 1;
@@ -251,6 +254,7 @@ public final class PpeCommands {
     }
 
     public static void clearRuntimeState() {
+        // These collections contain session-only state and must not survive a server restart.
         for (TeleportRequestType type : TeleportRequestType.values()) {
             type.requests().clear();
         }

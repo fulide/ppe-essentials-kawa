@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+/**
+ * Backs up and upgrades legacy 26.1.2 player data before normal deserialization.
+ */
 final class PpePlayerDataMigrations {
     static final int CURRENT_SCHEMA_VERSION = 2;
     static final String SCHEMA_VERSION_KEY = "schemaVersion";

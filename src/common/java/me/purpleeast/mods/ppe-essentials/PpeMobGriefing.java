@@ -6,6 +6,9 @@ import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.level.Explosion;
 
+/**
+ * Centralizes the loader-neutral checks used to suppress configured mob block damage.
+ */
 public final class PpeMobGriefing {
     private PpeMobGriefing() {
     }

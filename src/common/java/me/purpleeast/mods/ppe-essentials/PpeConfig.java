@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Defines the shared configuration schema exposed by both loader backends.
+ */
 public final class PpeConfig {
     static final String FILE_NAME = "ppe_essentials-common.toml";
     private static final String DEFAULT_VALUE_COMMENT_PREFIX = " Default: ";

@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 
+/**
+ * Removes obsolete configuration entries while preserving a backup of the original file.
+ */
 final class PpeConfigMigration {
     private static final String COMMANDS_SECTION = "commands";
     private static final String COMMAND_SECTION_PREFIX = COMMANDS_SECTION + ".";
@@ -26,6 +29,7 @@ final class PpeConfigMigration {
 
         Path backup = backupPath(path);
         if (Files.notExists(backup)) {
+            // Keep the first pre-migration snapshot so later reloads cannot overwrite it.
             Files.copy(path, backup);
         }
 
@@ -58,6 +62,7 @@ final class PpeConfigMigration {
         Section section = Section.ROOT;
 
         for (String line : content.split("(?<=\\n)", -1)) {
+            // Comments are emitted only when the setting or section they describe is retained.
             String syntax = stripComment(line).trim();
             if (syntax.isEmpty()) {
                 pendingComments.append(line);
