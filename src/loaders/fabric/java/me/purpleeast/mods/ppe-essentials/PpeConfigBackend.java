@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -78,6 +80,12 @@ final class PpeConfigBackend {
         return (int) VALUES.get(definition.key());
     }
 
+    @SuppressWarnings("unchecked")
+    static List<String> stringListValue(PpeConfig.ValueDefinition definition) {
+        reloadIfChanged();
+        return (List<String>) VALUES.get(definition.key());
+    }
+
     static boolean commandEnabled(String command) {
         reloadIfChanged();
         CommandValue value = COMMANDS.get(command);
@@ -139,9 +147,12 @@ final class PpeConfigBackend {
     }
 
     private static void parse(Iterable<String> lines) {
+        List<String> allLines = new ArrayList<>();
+        lines.forEach(allLines::add);
+
         String section = "";
-        for (String rawLine : lines) {
-            String line = stripComment(rawLine).trim();
+        for (int index = 0; index < allLines.size(); index++) {
+            String line = stripComment(allLines.get(index)).trim();
             if (line.isEmpty()) {
                 continue;
             }
@@ -157,8 +168,25 @@ final class PpeConfigBackend {
 
             String key = line.substring(0, equals).trim();
             String value = line.substring(equals + 1).trim();
+            if (value.startsWith("[") && !value.endsWith("]")) {
+                StringBuilder combinedValue = new StringBuilder(value);
+                while (index + 1 < allLines.size()) {
+                    String continuation = stripComment(allLines.get(++index)).trim();
+                    if (continuation.isEmpty()) {
+                        continue;
+                    }
+                    combinedValue.append(' ').append(continuation);
+                    if (continuation.endsWith("]")) {
+                        break;
+                    }
+                }
+                value = combinedValue.toString();
+            }
+
             if (section.startsWith("commands.")) {
                 parseCommand(section.substring("commands.".length()), key, value);
+            } else if ("blacklists".equals(section)) {
+                parseTeleportBlacklist(key, value);
             } else {
                 parseRoot(key, value);
             }
@@ -173,11 +201,26 @@ final class PpeConfigBackend {
 
         Object parsedValue = switch (definition.type()) {
             case STRING -> parseString(value);
+            case STRING_LIST -> parseStringList(value);
             case BOOLEAN -> parseBoolean(value);
             case INTEGER -> parseInt(value, definition.min(), definition.max());
         };
         if (parsedValue != null && definition.accepts(parsedValue)) {
             VALUES.put(key, parsedValue);
+        }
+    }
+
+    private static void parseTeleportBlacklist(String key, String value) {
+        for (PpeConfig.ValueDefinition definition : PpeConfig.teleportBlacklistValues()) {
+            if (!definition.key().equals(key)) {
+                continue;
+            }
+
+            List<String> parsedValue = parseStringList(value);
+            if (parsedValue != null && definition.accepts(parsedValue)) {
+                VALUES.put(key, parsedValue);
+            }
+            return;
         }
     }
 
@@ -211,6 +254,27 @@ final class PpeConfigBackend {
             return trimmed.substring(1, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    private static List<String> parseStringList(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+
+        String body = trimmed.substring(1, trimmed.length() - 1).trim();
+        if (body.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> values = new ArrayList<>();
+        for (String element : body.split(",")) {
+            String parsedElement = parseString(element.trim());
+            if (!parsedElement.isBlank()) {
+                values.add(parsedElement);
+            }
+        }
+        return values;
     }
 
     private static Boolean parseBoolean(String value) {
@@ -249,6 +313,15 @@ final class PpeConfigBackend {
         }
 
         builder.append('\n');
+        builder.append("[blacklists]\n\n");
+        for (PpeConfig.ValueDefinition definition : PpeConfig.teleportBlacklistValues()) {
+            appendComments(builder, definition.commentsWithDefaultValue());
+            builder.append(definition.key())
+                    .append(" = ")
+                    .append(formatValue(definition.defaultValue()))
+                    .append("\n\n");
+        }
+
         appendComments(builder, PpeConfig.commandComments());
         builder.append("[commands]\n\n");
         for (PpeConfig.CommandDefinition command : PpeConfig.commands()) {
@@ -268,7 +341,15 @@ final class PpeConfigBackend {
     }
 
     private static String formatValue(Object value) {
-        return value instanceof String stringValue ? "\"" + stringValue + "\"" : value.toString();
+        if (value instanceof String stringValue) {
+            return "\"" + stringValue + "\"";
+        }
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(PpeConfigBackend::formatValue)
+                    .collect(Collectors.joining(", ", "[", "]"));
+        }
+        return value.toString();
     }
 
     private static final class CommandValue {

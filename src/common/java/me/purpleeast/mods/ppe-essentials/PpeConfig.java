@@ -1,6 +1,7 @@
 package me.purpleeast.mods.ppe_essentials;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -95,6 +96,14 @@ public final class PpeConfig {
             true,
             " Whether players may send /tpa and /tpahere requests to themselves."
     );
+    private static final ValueDefinition TELEPORT_BLACKLIST_FROM = stringListValue(
+            "from",
+            " Dimensions players aren't permitted to run teleport commands in."
+    );
+    private static final ValueDefinition TELEPORT_BLACKLIST_TO = stringListValue(
+            "to",
+            " Dimensions players aren't permitted to teleport into."
+    );
 
     private static final List<ValueDefinition> VALUES = List.of(
             FALLBACK_LANGUAGE,
@@ -113,6 +122,13 @@ public final class PpeConfig {
     );
     private static final Set<String> VALUE_KEYS = Set.copyOf(
             VALUES.stream().map(ValueDefinition::key).toList()
+    );
+    private static final List<ValueDefinition> TELEPORT_BLACKLIST_VALUES = List.of(
+            TELEPORT_BLACKLIST_FROM,
+            TELEPORT_BLACKLIST_TO
+    );
+    private static final Set<String> TELEPORT_BLACKLIST_KEYS = Set.copyOf(
+            TELEPORT_BLACKLIST_VALUES.stream().map(ValueDefinition::key).toList()
     );
 
     private static final List<String> COMMAND_COMMENTS = List.of(
@@ -219,6 +235,14 @@ public final class PpeConfig {
         return PpeConfigBackend.booleanValue(ALLOW_SELF_TELEPORT_REQUESTS);
     }
 
+    public static boolean isTeleportSourceBlocked(String dimensionId) {
+        return containsDimension(PpeConfigBackend.stringListValue(TELEPORT_BLACKLIST_FROM), dimensionId);
+    }
+
+    public static boolean isTeleportDestinationBlocked(String dimensionId) {
+        return containsDimension(PpeConfigBackend.stringListValue(TELEPORT_BLACKLIST_TO), dimensionId);
+    }
+
     public static boolean commandEnabled(String command) {
         return PpeConfigBackend.commandEnabled(configCommand(command));
     }
@@ -247,6 +271,29 @@ public final class PpeConfig {
         return COMMAND_NAMES.contains(name);
     }
 
+    static List<ValueDefinition> teleportBlacklistValues() {
+        return TELEPORT_BLACKLIST_VALUES;
+    }
+
+    static boolean isTeleportBlacklistKey(String key) {
+        return TELEPORT_BLACKLIST_KEYS.contains(key);
+    }
+
+    private static boolean containsDimension(List<String> configuredDimensions, String dimensionId) {
+        String normalizedDimension = normalizeDimensionId(dimensionId);
+        for (String configuredDimension : configuredDimensions) {
+            if (normalizeDimensionId(configuredDimension).equals(normalizedDimension)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String normalizeDimensionId(String dimensionId) {
+        String normalized = dimensionId.trim().toLowerCase(Locale.ROOT);
+        return normalized.indexOf(':') < 0 && !normalized.isEmpty() ? "minecraft:" + normalized : normalized;
+    }
+
     private static ValueDefinition stringValue(
             String key,
             String defaultValue,
@@ -260,6 +307,18 @@ public final class PpeConfig {
                 Integer.MIN_VALUE,
                 Integer.MAX_VALUE,
                 Set.copyOf(allowedValues),
+                List.of(comments)
+        );
+    }
+
+    private static ValueDefinition stringListValue(String key, String... comments) {
+        return new ValueDefinition(
+                key,
+                ValueType.STRING_LIST,
+                List.of(),
+                Integer.MIN_VALUE,
+                Integer.MAX_VALUE,
+                Set.of(),
                 List.of(comments)
         );
     }
@@ -301,11 +360,20 @@ public final class PpeConfig {
     }
 
     private static String formatValue(Object value) {
-        return value instanceof String stringValue ? "\"" + stringValue + "\"" : value.toString();
+        if (value instanceof String stringValue) {
+            return "\"" + stringValue + "\"";
+        }
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(PpeConfig::formatValue)
+                    .collect(java.util.stream.Collectors.joining(", ", "[", "]"));
+        }
+        return value.toString();
     }
 
     enum ValueType {
         STRING,
+        STRING_LIST,
         BOOLEAN,
         INTEGER
     }
@@ -330,6 +398,8 @@ public final class PpeConfig {
             return switch (type) {
                 case STRING -> value instanceof String stringValue
                         && (allowedValues.isEmpty() || allowedValues.contains(stringValue));
+                case STRING_LIST -> value instanceof List<?> list
+                        && list.stream().allMatch(element -> element instanceof String);
                 case BOOLEAN -> value instanceof Boolean;
                 case INTEGER -> value instanceof Integer intValue && intValue >= min && intValue <= max;
             };

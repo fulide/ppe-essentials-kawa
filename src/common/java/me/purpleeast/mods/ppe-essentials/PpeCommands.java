@@ -336,6 +336,15 @@ public final class PpeCommands {
     }
 
     private static int sendTeleportRequest(ServerPlayer sender, ServerPlayer target, TeleportRequestType type) {
+        if (denyTeleportSource(sender)) {
+            return 0;
+        }
+
+        ServerLevel destination = type == TeleportRequestType.TPA ? PpeCompat.level(target) : PpeCompat.level(sender);
+        if (denyTeleportDestination(sender, destination)) {
+            return 0;
+        }
+
         if (!PpeConfig.allowSelfTeleportRequests() && sender.getUUID().equals(target.getUUID())) {
             send(sender, "ppe_essentials.teleport.request.self_disabled");
             return 0;
@@ -344,7 +353,9 @@ public final class PpeCommands {
         if (type == TeleportRequestType.TPA
                 && commandAvailable(target, "tpaauto")
                 && PpePlayerData.get(PpeCompat.server(sender)).isTpaAuto(target.getUUID())) {
-            teleport(sender, PpeCompat.level(target), target.getX(), target.getY(), target.getZ(), target.getYRot(), target.getXRot());
+            if (!teleport(sender, PpeCompat.level(target), target.getX(), target.getY(), target.getZ(), target.getYRot(), target.getXRot())) {
+                return 0;
+            }
             notifyParticipants(
                     target, "ppe_essentials.tpa.auto.target", sender.getName(),
                     sender, "ppe_essentials.tpa.auto.sender", target.getName()
@@ -399,10 +410,23 @@ public final class PpeCommands {
 
         String action = accepted ? "accept" : "deny";
         if (accepted) {
-            if (type.movesRequester()) {
-                teleport(requester, PpeCompat.level(target), target.getX(), target.getY(), target.getZ(), target.getYRot(), target.getXRot());
-            } else {
-                teleport(target, PpeCompat.level(requester), requester.getX(), requester.getY(), requester.getZ(), requester.getYRot(), requester.getXRot());
+            ServerPlayer mover = type.movesRequester() ? requester : target;
+            ServerLevel destination = type.movesRequester() ? PpeCompat.level(target) : PpeCompat.level(requester);
+            if (denyTeleportSource(target)
+                    || denyTeleportSource(mover)
+                    || denyTeleportDestination(mover, destination)) {
+                send(target, "ppe_essentials.teleport.blacklist.cancelled");
+                if (!requester.getUUID().equals(target.getUUID())) {
+                    send(requester, "ppe_essentials.teleport.blacklist.cancelled");
+                }
+                return 0;
+            }
+
+            boolean teleported = type.movesRequester()
+                    ? teleport(requester, destination, target.getX(), target.getY(), target.getZ(), target.getYRot(), target.getXRot())
+                    : teleport(target, destination, requester.getX(), requester.getY(), requester.getZ(), requester.getYRot(), requester.getXRot());
+            if (!teleported) {
+                return 0;
             }
         }
         notifyParticipants(
@@ -416,6 +440,10 @@ public final class PpeCommands {
     }
 
     private static int rtp(ServerPlayer player) {
+        if (denyTeleportSource(player) || denyTeleportDestination(player, PpeCompat.level(player))) {
+            return 0;
+        }
+
         int tick = PpeCompat.server(player).getTickCount();
         int cooldownExpireTick = RTP_COOLDOWNS.getOrDefault(player.getUUID(), 0);
         if (cooldownExpireTick > tick) {
@@ -441,9 +469,19 @@ public final class PpeCommands {
     }
 
     private static int spawn(ServerPlayer player) {
+        if (denyTeleportSource(player)) {
+            return 0;
+        }
+
         ServerLevel level = PpeCompat.spawnLevel(player);
+        if (denyTeleportDestination(player, level)) {
+            return 0;
+        }
+
         BlockPos spawn = PpeCompat.spawnPos(player);
-        teleport(player, level, spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5, PpeCompat.spawnAngle(player), 0.0F);
+        if (!teleport(player, level, spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5, PpeCompat.spawnAngle(player), 0.0F)) {
+            return 0;
+        }
         send(player, "ppe_essentials.spawn.success");
         teleportSound(player);
         return 1;
@@ -701,13 +739,35 @@ public final class PpeCommands {
             return false;
         }
 
-        teleport(player, level.get(), location.x(), location.y(), location.z(), location.yRot(), location.xRot());
+        return teleport(player, level.get(), location.x(), location.y(), location.z(), location.yRot(), location.xRot());
+    }
+
+    private static boolean teleport(ServerPlayer player, ServerLevel level, double x, double y, double z, float yRot, float xRot) {
+        if (denyTeleportSource(player) || denyTeleportDestination(player, level)) {
+            return false;
+        }
+
+        PpePlayerData.get(PpeCompat.server(player)).setTeleportBack(player.getUUID(), PpeLocation.of(player));
+        PpeCompat.teleport(player, level, x, y, z, yRot, xRot);
         return true;
     }
 
-    private static void teleport(ServerPlayer player, ServerLevel level, double x, double y, double z, float yRot, float xRot) {
-        PpePlayerData.get(PpeCompat.server(player)).setTeleportBack(player.getUUID(), PpeLocation.of(player));
-        PpeCompat.teleport(player, level, x, y, z, yRot, xRot);
+    private static boolean denyTeleportSource(ServerPlayer player) {
+        if (!PpeConfig.isTeleportSourceBlocked(PpeCompat.dimensionId(PpeCompat.level(player)))) {
+            return false;
+        }
+
+        send(player, "ppe_essentials.teleport.blacklist.from");
+        return true;
+    }
+
+    private static boolean denyTeleportDestination(ServerPlayer player, ServerLevel destination) {
+        if (!PpeConfig.isTeleportDestinationBlocked(PpeCompat.dimensionId(destination))) {
+            return false;
+        }
+
+        send(player, "ppe_essentials.teleport.blacklist.to");
+        return true;
     }
 
     private static MutableComponent prefixedRequestButtons(ServerPlayer player, String acceptCommand, String denyCommand) {

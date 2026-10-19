@@ -7,10 +7,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 final class PpeConfigBackend {
     private static final Map<String, ModConfigSpec.ConfigValue<?>> VALUES = new LinkedHashMap<>();
+    private static final Map<String, ModConfigSpec.ConfigValue<List<? extends String>>> TELEPORT_BLACKLISTS =
+            new LinkedHashMap<>();
     private static final Map<String, CommandValue> COMMANDS = new LinkedHashMap<>();
 
     static final ModConfigSpec SPEC;
@@ -24,6 +27,18 @@ final class PpeConfigBackend {
             builder.comment(comments);
             VALUES.put(definition.key(), define(builder, definition));
         }
+
+        builder.comment(" Teleport blacklist settings.").push("blacklists");
+        for (PpeConfig.ValueDefinition definition : PpeConfig.teleportBlacklistValues()) {
+            builder.comment(definition.commentsWithDefaultValue().toArray(String[]::new));
+            TELEPORT_BLACKLISTS.put(definition.key(), builder.defineListAllowEmpty(
+                    definition.key(),
+                    List.<String>of(),
+                    () -> "",
+                    value -> value instanceof String string && !string.isBlank()
+            ));
+        }
+        builder.pop();
 
         builder.comment(PpeConfig.commandComments().toArray(String[]::new)).push("commands");
         for (PpeConfig.CommandDefinition command : PpeConfig.commands()) {
@@ -72,6 +87,10 @@ final class PpeConfigBackend {
         return (int) VALUES.get(definition.key()).get();
     }
 
+    static List<String> stringListValue(PpeConfig.ValueDefinition definition) {
+        return List.copyOf(TELEPORT_BLACKLISTS.get(definition.key()).get());
+    }
+
     static boolean commandEnabled(String command) {
         CommandValue value = COMMANDS.get(command);
         return value == null || value.enabled().get();
@@ -91,6 +110,12 @@ final class PpeConfigBackend {
                     definition.key(),
                     definition.defaultValue(),
                     definition::accepts
+            );
+            case STRING_LIST -> builder.defineListAllowEmpty(
+                    definition.key(),
+                    List.<String>of(),
+                    () -> "",
+                    value -> value instanceof String
             );
             case BOOLEAN -> builder.define(
                     definition.key(),

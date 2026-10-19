@@ -37,6 +37,10 @@ public final class PpeCompat {
         return player.level();
     }
 
+    public static String dimensionId(ServerLevel level) {
+        return level.dimension().identifier().toString();
+    }
+
     public static ServerLevel spawnLevel(ServerPlayer player) {
         return server(player).findRespawnDimension();
     }

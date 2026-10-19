@@ -4,6 +4,8 @@
 
 PPE Essentials is a lightweight mod that adds useful commands (like /tpa /repeat) and tweaks, with highly configurable options.
 
+> **Kawa build:** This is an unofficial derivative of [PurpleEastZQ/ppe-essentials](https://github.com/PurpleEastZQ/ppe-essentials). It adds the `[blacklists]` dimension configuration described below. See [NOTICE.md](NOTICE.md) for upstream attribution and licensing.
+
 ![PPE Essentials command preview](https://raw.githubusercontent.com/PurpleEastZQ/ppe-essentials/master/artwork/ppe-essentials-help-preview.png)
 
 ## Features
@@ -69,9 +71,31 @@ PPE Essentials is a lightweight mod that adds useful commands (like /tpa /repeat
 
 All configuration options are located in `config/ppe_essentials-common.toml`.
 
+### Teleport Dimension Blacklist
+
+`[blacklists]` restricts dimensions for PPE Essentials teleport commands only. It does not affect vanilla commands or teleport commands from other mods.
+
+```toml
+[blacklists]
+# Dimensions players aren't permitted to run teleport commands in.
+# Default: []
+from = ["void:the_nothing01", "void:the_nothing02"]
+
+# Dimensions players aren't permitted to teleport into.
+# Default: []
+to = ["void:the_nothing01", "void:the_nothing02"]
+```
+
 ## Installation & Building
 
-Download the jar matching your Minecraft version and mod loader, then place it in the `mods` folder.
+Prebuilt Kawa jars are provided in [`dist/`](dist/). Download the jar matching your Minecraft version and mod loader, then place it in the `mods` folder.
+
+| Minecraft | NeoForge | Fabric |
+| --- | --- | --- |
+| 1.21.1 | `dist/ppe_essentials-neoforge-1.21.1-1.7.0.jar` | `dist/ppe_essentials-fabric-1.21.1-1.7.0.jar` |
+| 26.1.2 | `dist/ppe_essentials-neoforge-26.1.2-1.7.0.jar` | `dist/ppe_essentials-fabric-26.1.2-1.7.0.jar` |
+
+SHA-256 checksums are available in [`dist/SHA256SUMS.txt`](dist/SHA256SUMS.txt).
 
 Fabric installations also require Fabric API.
 

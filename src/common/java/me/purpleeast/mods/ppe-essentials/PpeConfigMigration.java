@@ -12,6 +12,7 @@ import java.util.Set;
  * Removes obsolete configuration entries while preserving a backup of the original file.
  */
 final class PpeConfigMigration {
+    private static final String BLACKLISTS_SECTION = "blacklists";
     private static final String COMMANDS_SECTION = "commands";
     private static final String COMMAND_SECTION_PREFIX = COMMANDS_SECTION + ".";
     private static final Set<String> COMMAND_KEYS = Set.of("enabled", "permissionLevel");
@@ -102,6 +103,9 @@ final class PpeConfigMigration {
     }
 
     private static Section classifySection(String sectionName) {
+        if (BLACKLISTS_SECTION.equals(sectionName)) {
+            return Section.BLACKLISTS;
+        }
         if (COMMANDS_SECTION.equals(sectionName)) {
             return Section.COMMANDS;
         }
@@ -115,6 +119,7 @@ final class PpeConfigMigration {
     private static boolean isKnownKey(Section section, String key) {
         return switch (section) {
             case ROOT -> PpeConfig.isValueKey(key);
+            case BLACKLISTS -> PpeConfig.isTeleportBlacklistKey(key);
             case COMMAND -> COMMAND_KEYS.contains(key);
             case COMMANDS, UNKNOWN -> false;
         };
@@ -127,6 +132,7 @@ final class PpeConfigMigration {
 
     private enum Section {
         ROOT,
+        BLACKLISTS,
         COMMANDS,
         COMMAND,
         UNKNOWN
